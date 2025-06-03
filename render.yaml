@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: festival-bot
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python main.py"
+    envVars:
+      - key: BOT_TOKEN
+        value: 7816404381:AAHDc6ERcf01aXJhTdgVrDuSjzy_wwLrf1o
+      - key: REMOVE_BG_TOKEN
+        value: WLMDgqhpcCGFGD7bgiaKzuJo
+      - key: REPLICATE_API_TOKEN
+        value: r8_7miai9DTh96AVgIZZCjS6Jq5d4kJHsv0WmoRz
+      - key: SESSION_SECRET
+        value: fest-secret-2024
+      - key: DATABASE_URL
+        value: sqlite:///festival_bot.db
