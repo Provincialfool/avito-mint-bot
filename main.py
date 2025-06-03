@@ -1,52 +1,90 @@
-import os
+
 import logging
+import os
+
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, FSInputFile
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiohttp import web
 from dotenv import load_dotenv
 
-# Загрузка .env
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-WEBHOOK_PATH = "/webhook"
-HOST = "0.0.0.0"
-PORT = int(os.getenv("PORT", 10000))
 
-# Инициализация бота и логгера
+TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+
+bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher(storage=MemoryStorage())
+
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+logger = logging.getLogger(__name__)
+
+def main_menu():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📍 Карта"), KeyboardButton(text="💃 Танцы")],
+            [KeyboardButton(text="🧩 Квест"), KeyboardButton(text="🤳 Стикер")],
+            [KeyboardButton(text="📅 Расписание"), KeyboardButton(text="🆘 Поддержка")],
+            [KeyboardButton(text="🎥 Кружок")]
+        ],
+        resize_keyboard=True,
+        input_field_placeholder="Выберите действие"
+    )
 
 @dp.message(F.text == "/start")
-async def cmd_start(message: Message):
-    await message.answer("Привет! 👋 Это бот Avito × Дикая Мята. Выбери действие из меню.")
+async def start(message: Message):
+    await message.answer(
+        "Привет! 👋 Это бот Avito × Дикая Мята. Выбери действие из меню.",
+        reply_markup=main_menu()
+    )
 
-@dp.message(F.photo)
-async def handle_photo(message: Message):
-    await message.answer("Спасибо за фото! 🎨 Стикер скоро будет доступен.")
+@dp.message(F.text == "📍 Карта")
+async def handle_map(message: Message):
+    await message.answer("🗺 Здесь будет карта мероприятия.")
 
-@dp.message()
-async def echo_text(message: Message):
-    await message.answer("Я пока учусь отвечать. Напиши /start, чтобы начать заново.")
+@dp.message(F.text == "💃 Танцы")
+async def handle_dance(message: Message):
+    await message.answer("💃 Пойдем танцевать!")
 
-async def on_startup(app: web.Application):
-    logging.info(">>> Устанавливаем webhook...")
-    await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)
+@dp.message(F.text == "🧩 Квест")
+async def handle_quest(message: Message):
+    await message.answer("🧩 Участвуй в квесте и выигрывай призы!")
 
-async def on_shutdown(app: web.Application):
-    logging.info(">>> Удаляем webhook...")
-    await bot.delete_webhook()
+@dp.message(F.text == "🤳 Стикер")
+async def handle_sticker(message: Message):
+    await message.answer("🤳 Получи стикер-пак по ссылке: https://t.me/addstickers/example")
 
-def main():
-    app = web.Application()
-    SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
-    app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown)
-    setup_application(app, dp, bot=bot)
-    logging.info(f"Бот запущен на {HOST}:{PORT}")
-    web.run_app(app, host=HOST, port=PORT)
+@dp.message(F.text == "📅 Расписание")
+async def handle_schedule(message: Message):
+    await message.answer("📅 Смотри расписание здесь: https://example.com/schedule")
+
+@dp.message(F.text == "🆘 Поддержка")
+async def handle_support(message: Message):
+    await message.answer("🆘 Напиши @support_helper по всем вопросам.")
+
+@dp.message(F.text == "🎥 Кружок")
+async def handle_circle(message: Message):
+    video_path = "circle.mp4"
+    if not os.path.exists(video_path):
+        await message.answer("❌ Кружок не найден. Добавь файл circle.mp4 в корень проекта.")
+        return
+    video = FSInputFile(video_path)
+    await bot.send_video_note(chat_id=message.chat.id, video_note=video)
+
+async def webhook_handler(request):
+    body = await request.read()
+    update = bot.session.json_loads(body)
+    await dp.feed_update(bot=bot, update=update)
+    return web.Response()
+
+async def on_startup(app):
+    logger.info(">>> Устанавливаем webhook...")
+    await bot.set_webhook(WEBHOOK_URL)
+
+app = web.Application()
+app.router.add_post("/webhook", webhook_handler)
+app.on_startup.append(on_startup)
 
 if __name__ == "__main__":
-    main()
+    web.run_app(app, host="0.0.0.0", port=10000)
