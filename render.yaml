@@ -14,4 +14,4 @@ services:
       - key: SESSION_SECRET
         value: fest-secret-2024
       - key: DATABASE_URL
-        value: sqlite:///festival_bot.db
+        value: sqlite:///instance/festival_bot.db
