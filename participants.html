@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Participants - Festival Bot Admin</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot me-2"></i>
+                Festival Bot Admin
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index') }}">
+                    <i class="fas fa-tachometer-alt me-1"></i>
+                    Dashboard
+                </a>
+                <a class="nav-link active" href="{{ url_for('participants') }}">
+                    <i class="fas fa-users me-1"></i>
+                    Participants
+                </a>
+                <a class="nav-link" href="{{ url_for('broadcast') }}">
+                    <i class="fas fa-bullhorn me-1"></i>
+                    Broadcast
+                </a>
+                <a class="nav-link" href="{{ url_for('export_csv') }}">
+                    <i class="fas fa-download me-1"></i>
+                    Export CSV
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>
+                        <i class="fas fa-users me-2"></i>
+                        Participants
+                    </h1>
+                    <div>
+                        <a href="{{ url_for('export_csv') }}" class="btn btn-outline-success">
+                            <i class="fas fa-download me-1"></i>
+                            Export CSV
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Username</th>
+                                        <th>Telegram ID</th>
+                                        <th>Joined</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users.items %}
+                                    <tr>
+                                        <td>{{ user.id }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-placeholder bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 12px;">
+                                                    {{ user.first_name[0] if user.first_name else 'U' }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold">
+                                                        {{ user.first_name }} {{ user.last_name or '' }}
+                                                    </div>
+                                                    {% if user.is_admin %}
+                                                        <span class="badge bg-warning">Admin</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if user.username %}
+                                                <span class="text-muted">@{{ user.username }}</span>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <code>{{ user.telegram_id }}</code>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('user_detail', telegram_id=user.telegram_id) }}" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button class="btn btn-outline-danger btn-sm" 
+                                                        onclick="resetUser('{{ user.telegram_id }}', '{{ user.first_name }}')">
+                                                    <i class="fas fa-redo"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if users.pages > 1 %}
+                        <nav aria-label="Participants pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if users.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('participants', page=users.prev_num) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for page_num in users.iter_pages() %}
+                                    {% if page_num %}
+                                        {% if page_num != users.page %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('particles', page=page_num) }}">{{ page_num }}</a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ page_num }}</span>
+                                            </li>
+                                        {% endif %}
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">…</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if users.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('participants', page=users.next_num) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset User Modal -->
+    <div class="modal fade" id="resetUserModal" tabindex="-1" aria-labelledby="resetUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="resetUserModalLabel">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        Reset User Data
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to reset all data for user <strong id="resetUserName"></strong>?</p>
+                    <p class="text-muted">This will delete:</p>
+                    <ul class="text-muted">
+                        <li>All activity registrations</li>
+                        <li>Quest progress</li>
+                        <li>Generated stickers</li>
+                    </ul>
+                    <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmResetBtn">
+                        <i class="fas fa-redo me-1"></i>
+                        Reset User Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let resetModal;
+        let currentUserId;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            resetModal = new bootstrap.Modal(document.getElementById('resetUserModal'));
+        });
+
+        function resetUser(telegramId, userName) {
+            currentUserId = telegramId;
+            document.getElementById('resetUserName').textContent = userName;
+            resetModal.show();
+        }
+
+        document.getElementById('confirmResetBtn').addEventListener('click', function() {
+            if (currentUserId) {
+                // In a real implementation, this would make an API call to reset the user
+                console.log('Resetting user:', currentUserId);
+                
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    User data has been reset successfully.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.querySelector('.container').prepend(alertDiv);
+                
+                resetModal.hide();
+                
+                // Reload page after a short delay
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Broadcast - Festival Bot Admin</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot me-2"></i>
+                Festival Bot Admin
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index') }}">
+                    <i class="fas fa-tachometer-alt me-1"></i>
+                    Dashboard
+                </a>
+                <a class="nav-link" href="{{ url_for('participants') }}">
+                    <i class="fas fa-users me-1"></i>
+                    Participants
+                </a>
+                <a class="nav-link active" href="{{ url_for('broadcast') }}">
+                    <i class="fas fa-bullhorn me-1"></i>
+                    Broadcast
+                </a>
+                <a class="nav-link" href="{{ url_for('export_csv') }}">
+                    <i class="fas fa-download me-1"></i>
+                    Export CSV
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-bullhorn me-2"></i>
+                    Broadcast Message
+                </h1>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-paper-plane me-2"></i>
+                            Send Broadcast Message
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('broadcast') }}">
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Message Content</label>
+                                <textarea class="form-control" id="message" name="message" rows="6" 
+                                          placeholder="Enter your broadcast message here..." required></textarea>
+                                <div class="form-text">
+                                    This message will be sent to all bot users. Use emoji and markdown formatting if needed.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="confirmSend" required>
+                                    <label class="form-check-label text-warning" for="confirmSend">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        I confirm that I want to send this message to all users
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-1"></i>
+                                    Send Broadcast
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="previewMessage()">
+                                    <i class="fas fa-eye me-1"></i>
+                                    Preview
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="clearMessage()">
+                                    <i class="fas fa-trash me-1"></i>
+                                    Clear
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Quick Templates
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm text-start" onclick="useTemplate('yoga_start')">
+                                🧘 Yoga Starting Soon
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm text-start" onclick="useTemplate('dance_start')">
+                                💃 Dance Class Starting
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm text-start" onclick="useTemplate('quest_reminder')">
+                                🧩 Quest Reminder
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm text-start" onclick="useTemplate('food_announcement')">
+                                🍽️ Food Court Update
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm text-start" onclick="useTemplate('weather_alert')">
+                                🌦️ Weather Alert
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm text-start" onclick="useTemplate('closing_ceremony')">
+                                🎉 Closing Ceremony
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Tips
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Use emoji to make messages more engaging
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Keep messages concise and clear
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Include specific times and locations
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Test with preview before sending
+                            </li>
+                            <li>
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                Double-check for typos and accuracy
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalLabel">
+                        <i class="fas fa-eye me-2"></i>
+                        Message Preview
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-robot me-2"></i>
+                                <strong>Festival Bot</strong>
+                                <span class="ms-auto small">📢 Broadcast</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="previewContent" class="border-start border-primary border-3 ps-3">
+                                <!-- Preview content will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="focusMessageInput()">
+                        <i class="fas fa-edit me-1"></i>
+                        Edit Message
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const templates = {
+            'yoga_start': '🧘‍♀️ Йога начинается через 15 минут в Йога-зоне!\n\nНе забудьте взять с собой коврик и удобную одежду. Увидимся на занятии! 🌟',
+            'dance_start': '💃 Танцевальный класс начинается прямо сейчас на Танцевальной площадке!\n\nПрисоединяйтесь к нам для зажигательных движений и отличного настроения! 🎵',
+            'quest_reminder': '🧩 Не забывайте про наш увлекательный квест!\n\nНачните с поиска маяка и получите уникальные призы. Используйте команду /start и выберите "Квест" 🏮',
+            'food_announcement': '🍽️ Фуд-корт открыт и готов вас накормить!\n\nСегодня в меню: авторские бургеры, вегетарианские блюда и освежающие напитки. Приятного аппетита! 😋',
+            'weather_alert': '🌦️ Внимание! Возможен дождь в ближайшие часы.\n\nРекомендуем взять зонты или дождевики. Все активности продолжаются по расписанию! ☔',
+            'closing_ceremony': '🎉 Торжественное закрытие фестиваля начнется в 18:00 на Главной сцене!\n\nБлагодарим всех за участие. До встречи в следующем году! ✨'
+        };
+
+        function useTemplate(templateKey) {
+            const messageTextarea = document.getElementById('message');
+            messageTextarea.value = templates[templateKey];
+            messageTextarea.focus();
+        }
+
+        function previewMessage() {
+            const message = document.getElementById('message').value;
+            if (!message.trim()) {
+                alert('Please enter a message first');
+                return;
+            }
+            
+            // Convert basic markdown-like formatting
+            let previewHtml = message
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            document.getElementById('previewContent').innerHTML = previewHtml;
+            
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModal.show();
+        }
+
+        function clearMessage() {
+            if (confirm('Are you sure you want to clear the message?')) {
+                document.getElementById('message').value = '';
+                document.getElementById('confirmSend').checked = false;
+            }
+        }
+
+        function focusMessageInput() {
+            document.getElementById('message').focus();
+        }
+
+        // Auto-save draft to localStorage
+        const messageTextarea = document.getElementById('message');
+        messageTextarea.addEventListener('input', function() {
+            localStorage.setItem('broadcastDraft', this.value);
+        });
+
+        // Load draft on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const draft = localStorage.getItem('broadcastDraft');
+            if (draft && !messageTextarea.value) {
+                messageTextarea.value = draft;
+            }
+        });
+
+        // Clear draft after successful send
+        document.querySelector('form').addEventListener('submit', function() {
+            localStorage.removeItem('broadcastDraft');
+        });
+    </script>
+</body>
+</html>
