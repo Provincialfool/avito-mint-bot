@@ -1,44 +1,63 @@
-import logging
 import os
-
+import logging
 from aiohttp import web
-from aiogram import Bot, Dispatcher, types
-from aiogram.enums import ParseMode
-from aiogram.types import Update
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from dotenv import load_dotenv
 
-load_dotenv()
+from aiogram import Bot, Dispatcher, F, types
+from aiogram.enums import ParseMode
+from aiogram.types import Update
+from aiogram.client.default import DefaultBotProperties
+from aiogram.filters import CommandStart
 
-TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+# ────────────────────────────────────────────────────────────────
+load_dotenv()                           # .env -> окружение
+TOKEN        = os.getenv("BOT_TOKEN")
+WEBHOOK_URL  = os.getenv("WEBHOOK_URL") # https://*.railway.app
+WEBHOOK_PATH = "/webhook"               # фиксирован
 
-bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+)
 dp = Dispatcher()
 
-# Базовая команда /start
-@dp.message(commands=["start"])
-async def cmd_start(message: types.Message):
-    await message.answer("Привет! 👋 Это бот Avito × Дикая Мята.\n\nВыбери действие из меню.")
+# ──────────────── Хендлеры ──────────────────────────────────────
+@dp.message(CommandStart())
+async def start_cmd(msg: types.Message):
+    await msg.answer(
+        "Привет! 👋 Это бот Avito × Дикая Мята.\n"
+        "Пока умею отвечать на текст — меню добавим позже 😉"
+    )
 
-# Установка webhook
-async def on_startup(app: web.Application):
-    logging.info(">>> Устанавливаем webhook...")
+@dp.message(F.photo)
+async def got_photo(msg: types.Message):
+    await msg.answer("Фото получил, спасибо!")
+
+@dp.message()
+async def echo(msg: types.Message):
+    await msg.answer("Ты написал: <code>{}</code>".format(msg.text))
+
+# ──────────────── Webhook-сервер ────────────────────────────────
+async def on_startup(_: web.Application):
+    logging.info(">> Webhook set")
     await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}")
 
-# Удаление webhook при остановке
-async def on_shutdown(app: web.Application):
-    logging.warning(">>> Удаляем webhook...")
+async def on_shutdown(_: web.Application):
+    logging.info(">> Webhook delete")
     await bot.delete_webhook()
 
-# AIOHTTP сервер
+async def handle(request: web.Request):
+    data: dict = await request.json()
+    update = Update.model_validate(data, context={"bot": bot})
+    await dp.feed_update(bot, update)
+    return web.Response()
+
 app = web.Application()
-SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
+app.router.add_post(WEBHOOK_PATH, handle)
 app.on_startup.append(on_startup)
 app.on_shutdown.append(on_shutdown)
 
-# Запуск
+# ──────────────── Запуск ────────────────────────────────────────
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     web.run_app(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
