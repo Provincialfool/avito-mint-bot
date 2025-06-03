@@ -40,7 +40,7 @@ async def echo(msg: types.Message):
 # ──────────────── Webhook-сервер ────────────────────────────────
 async def on_startup(_: web.Application):
     logging.info(">> Webhook set")
-    await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}")
+    await bot.set_webhook(WEBHOOK_URL)
 
 async def on_shutdown(_: web.Application):
     logging.info(">> Webhook delete")
